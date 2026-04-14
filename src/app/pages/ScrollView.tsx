@@ -1,205 +1,174 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Map, Search, User, LogOut, LayoutDashboard, Sparkles } from 'lucide-react';
 import SearchFilters from '../components/SearchFilters';
 import ProviderCard from '../components/ProviderCard';
-import { mockProviders } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import LoginDialog from '../components/LoginDialog';
 import { Card } from '../components/ui/card';
+import { getProviders } from '../../lib/api';
+import type { Provider } from '../data/mockData';
+
+interface Filters {
+  query: string;
+  type: string;
+  distance: number;
+  sortBy: string;
+}
 
 export default function ScrollView() {
   const navigate = useNavigate();
-  const { user, isGuest, isProvider, logout } = useAuth();
+  const { isGuest, isProvider, logout } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
-  const [filters, setFilters] = useState({
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [loadingProviders, setLoadingProviders] = useState(true);
+  const [filters, setFilters] = useState<Filters>({
     query: '',
     type: 'all',
     distance: 10,
     sortBy: 'distance'
   });
 
-  const handleFilterChange = (key: string, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+  useEffect(() => {
+    setLoadingProviders(true);
+    getProviders()
+      .then(data => setProviders(data))
+      .catch(err => console.error('Error cargando providers:', err))
+      .finally(() => setLoadingProviders(false));
+  }, []);
+
+  const handleFilterChange = (key: string, value: string | number) => {
+    setFilters((prev: Filters) => ({ ...prev, [key]: value }));
   };
 
   const handleClearFilters = () => {
-    setFilters({
-      query: '',
-      type: 'all',
-      distance: 10,
-      sortBy: 'distance'
-    });
+    setFilters({ query: '', type: 'all', distance: 10, sortBy: 'distance' });
   };
 
   const filteredProviders = useMemo(() => {
-    let results = [...mockProviders];
+    let results = [...providers];
 
-    // Filter by query
     if (filters.query) {
       const query = filters.query.toLowerCase();
-      results = results.filter(p =>
+      results = results.filter((p: Provider) =>
         p.name.toLowerCase().includes(query) ||
         p.description.toLowerCase().includes(query) ||
-        p.services.some(s => s.toLowerCase().includes(query))
+        p.services.some((s: string) => s.toLowerCase().includes(query))
       );
     }
 
-    // Filter by type
     if (filters.type !== 'all') {
-      results = results.filter(p => p.type === filters.type);
+      results = results.filter((p: Provider) => p.type === filters.type);
     }
 
-    // Filter by distance
-    results = results.filter(p => (p.distance || 0) <= filters.distance);
+    results = results.filter((p: Provider) => (p.distance || 0) <= filters.distance);
 
-    // Sort
-    results.sort((a, b) => {
+    results.sort((a: Provider, b: Provider) => {
       switch (filters.sortBy) {
-        case 'distance':
-          return (a.distance || 0) - (b.distance || 0);
-        case 'rating':
-          return b.rating - a.rating;
-        case 'reviews':
-          return b.reviewCount - a.reviewCount;
-        case 'name':
-          return a.name.localeCompare(b.name);
-        default:
-          return 0;
+        case 'distance': return (a.distance || 0) - (b.distance || 0);
+        case 'rating': return b.rating - a.rating;
+        case 'reviews': return b.reviewCount - a.reviewCount;
+        case 'name': return a.name.localeCompare(b.name);
+        default: return 0;
       }
     });
 
     return results;
-  }, [filters]);
+  }, [providers, filters]);
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
       <header className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              PetConnect
-            </h1>
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
+              <span className="text-2xl">🐾</span>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
+                PetConnect
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              {!isGuest && isProvider && (
+                <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
+                  <LayoutDashboard className="h-4 w-4 mr-1" />
+                  Dashboard
+                </Button>
+              )}
               {isGuest ? (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowLogin(true)}
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Sign In
+                <Button variant="outline" size="sm" onClick={() => setShowLogin(true)}>
+                  <User className="h-4 w-4 mr-1" />
+                  Login
                 </Button>
               ) : (
-                <>
-                  {isProvider && (
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate('/dashboard')}
-                    >
-                      <LayoutDashboard className="w-4 h-4 mr-2" />
-                      Dashboard
-                    </Button>
-                  )}
-                  <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
-                    <User className="w-4 h-4" />
-                    <span className="text-sm">{user.username}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={logout}
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </Button>
-                </>
+                <Button variant="outline" size="sm" onClick={logout}>
+                  <LogOut className="h-4 w-4 mr-1" />
+                  Logout
+                </Button>
               )}
             </div>
-          </div>
-
-          {/* Quick search bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search for pet services..."
-              className="w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-              value={filters.query}
-              onChange={(e) => handleFilterChange('query', e.target.value)}
-            />
           </div>
         </div>
       </header>
 
-      {/* Interactive Map Promotion Banner */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-        <div className="container mx-auto px-4 py-4">
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-white p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-1">Try our Interactive Map Experience!</h3>
-                  <p className="text-sm text-white/90">
-                    Create your pet avatar and explore services in a fun, Club Penguin-style world
-                  </p>
-                </div>
+      <main className="flex-1 container mx-auto px-4 py-6">
+        <Card className="mb-6 bg-gradient-to-r from-purple-600 to-pink-500 text-white border-0">
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5" />
+              <div>
+                <p className="font-semibold">¡Prueba nuestra vista de mapa interactiva!</p>
+                <p className="text-sm opacity-90">Explora servicios cerca de ti de forma visual</p>
               </div>
-              <Button
-                onClick={() => navigate('/map')}
-                className="bg-white text-purple-600 hover:bg-white/90"
-              >
-                <Map className="w-4 h-4 mr-2" />
-                Explore Map View
-              </Button>
             </div>
-          </Card>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/map')}
+              className="bg-white text-purple-600 hover:bg-purple-50"
+            >
+              <Map className="h-4 w-4 mr-1" />
+              Explorar Mapa
+            </Button>
+          </div>
+        </Card>
+
+        <div className="mb-6">
+          <SearchFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onClearFilters={handleClearFilters}
+          />
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-[300px_1fr] gap-6">
-          {/* Filters Sidebar */}
-          <aside className="lg:sticky lg:top-4 h-fit">
-            <SearchFilters
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              onClearFilters={handleClearFilters}
-            />
-          </aside>
-
-          {/* Results */}
-          <main>
-            <div className="mb-6">
-              <h2 className="text-2xl mb-2">
-                {filters.type === 'all' ? 'All Services' : `${filters.type.charAt(0).toUpperCase() + filters.type.slice(1)} Services`}
-              </h2>
-              <p className="text-gray-600">
-                Found {filteredProviders.length} provider{filteredProviders.length !== 1 ? 's' : ''} near you
-              </p>
+        {loadingProviders ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-48 bg-gray-100 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        ) : filteredProviders.length === 0 ? (
+          <div className="text-center py-16 text-gray-500">
+            <Search className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p className="text-lg font-medium">No se encontraron servicios</p>
+            <p className="text-sm mt-1">Intenta con otros filtros</p>
+            <Button variant="outline" className="mt-4" onClick={handleClearFilters}>
+              Limpiar filtros
+            </Button>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-gray-500 mb-4">
+              {filteredProviders.length} resultado{filteredProviders.length !== 1 ? 's' : ''} encontrado{filteredProviders.length !== 1 ? 's' : ''}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredProviders.map((provider: Provider) => (
+                <ProviderCard key={provider.id} provider={provider} />
+              ))}
             </div>
-
-            {filteredProviders.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-xl mb-2">No providers found</h3>
-                <p className="text-gray-600 mb-4">Try adjusting your filters or search terms</p>
-                <Button onClick={handleClearFilters}>Clear Filters</Button>
-              </div>
-            ) : (
-              <div className="grid gap-6">
-                {filteredProviders.map(provider => (
-                  <ProviderCard key={provider.id} provider={provider} />
-                ))}
-              </div>
-            )}
-          </main>
-        </div>
-      </div>
+          </>
+        )}
+      </main>
 
       <LoginDialog open={showLogin} onOpenChange={setShowLogin} />
     </div>
