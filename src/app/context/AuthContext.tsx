@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export type UserType = 'guest' | 'user' | 'provider';
 
@@ -8,7 +10,7 @@ export interface User {
   username?: string;
   email?: string;
   phone?: string;
-  providerId?: string; // For providers, links to their provider profile
+  providerId?: string;
 }
 
 interface AuthContextType {
@@ -18,97 +20,95 @@ interface AuthContextType {
   logout: () => void;
   isGuest: boolean;
   isProvider: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const GUEST_USER: User = {
-  id: 'guest',
-  type: 'guest'
-};
+const GUEST_USER: User = { id: 'guest', type: 'guest' };
 
-// Mock users for demo (in real app, this would be in a database)
-const mockUsers = [
-  {
-    id: '1',
-    type: 'user' as UserType,
-    username: 'johndoe',
-    email: 'john@example.com',
-    phone: '(555) 111-2222',
-    password: 'password123'
-  },
-  {
-    id: '2',
-    type: 'provider' as UserType,
-    username: 'pawsitivegrooming',
-    email: 'contact@pawsitivegrooming.com',
-    phone: '(555) 123-4567',
-    password: 'provider123',
-    providerId: '1'
-  }
-];
+async function fetchProfile(supabaseUser: SupabaseUser): Promise<User> {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', supabaseUser.id)
+    .single();
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+  return {
+    id: supabaseUser.id,
+    type: (profile?.user_type as UserType) ?? 'user',
+    username: profile?.username ?? supabaseUser.user_metadata?.username,
+    email: supabaseUser.email,
+    phone: profile?.phone,
+    providerId: profile?.provider_id ?? undefined,
+  };
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(GUEST_USER);
+  const [loading, setLoading] = useState(true);
 
-  // Load user from localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('petconnect_user');
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-      } catch (error) {
-        console.error('Failed to parse saved user', error);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const mappedUser = await fetchProfile(session.user);
+        setUser(mappedUser);
       }
-    }
-  }, []);
+      setLoading(false);
+    });
 
-  // Save user to localStorage when it changes
-  useEffect(() => {
-    if (user.type !== 'guest') {
-      localStorage.setItem('petconnect_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('petconnect_user');
-    }
-  }, [user]);
-
-  const login = async (credentials: { email: string; password: string }): Promise<boolean> => {
-    // Mock authentication
-    const foundUser = mockUsers.find(
-      u => u.email === credentials.email && u.password === credentials.password
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          const mappedUser = await fetchProfile(session.user);
+          setUser(mappedUser);
+        } else {
+          setUser(GUEST_USER);
+        }
+      }
     );
 
-    if (foundUser) {
-      const { password, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      return true;
-    }
-    return false;
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = async (credentials: { email: string; password: string }): Promise<boolean> => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    });
+    return !error;
   };
 
-  const signup = async (data: { 
-    username: string; 
-    email: string; 
-    phone: string; 
+  const signup = async (data: {
+    username: string;
+    email: string;
+    phone: string;
     password: string;
     isProvider?: boolean;
   }): Promise<boolean> => {
-    // Mock signup - in real app, this would create a new user in database
-    const newUser: User = {
-      id: `user_${Date.now()}`,
-      type: data.isProvider ? 'provider' : 'user',
-      username: data.username,
+    const { data: authData, error } = await supabase.auth.signUp({
       email: data.email,
-      phone: data.phone,
-      providerId: data.isProvider ? `provider_${Date.now()}` : undefined
-    };
+      password: data.password,
+      options: {
+        data: {
+          username: data.username,
+          user_type: data.isProvider ? 'provider' : 'user',
+        },
+      },
+    });
 
-    setUser(newUser);
+    if (error || !authData.user) return false;
+
+    await supabase
+      .from('profiles')
+      .update({ phone: data.phone })
+      .eq('id', authData.user.id);
+
     return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(GUEST_USER);
   };
 
@@ -120,7 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         logout,
         isGuest: user.type === 'guest',
-        isProvider: user.type === 'provider'
+        isProvider: user.type === 'provider',
+        loading,
       }}
     >
       {children}
