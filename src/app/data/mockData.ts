@@ -49,6 +49,26 @@ export interface Booking {
   createdAt: string;
 }
 
+export interface Pet {
+  id: string;
+  userId: string;
+  name: string;
+  type: 'dog' | 'cat' | 'bird' | 'rabbit' | 'hamster' | 'other';
+  breed?: string;
+  age?: number;
+  weight?: number;
+  color?: string;
+  image?: string;
+  medicalInfo?: {
+    vaccinations: string[];
+    allergies: string[];
+    medications: string[];
+    notes: string;
+  };
+  birthday?: string;
+  createdAt: string;
+}
+
 export interface PetAvatar {
   id: string;
   name: string;

@@ -21,6 +21,7 @@ interface AuthContextType {
   isGuest: boolean;
   isProvider: boolean;
   loading: boolean;
+  error: Error | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,28 +48,50 @@ async function fetchProfile(supabaseUser: SupabaseUser): Promise<User> {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(GUEST_USER);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const mappedUser = await fetchProfile(session.user);
-        setUser(mappedUser);
+    let isMounted = true;
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        
+        if (session?.user) {
+          const mappedUser = await fetchProfile(session.user);
+          if (isMounted) setUser(mappedUser);
+        }
+      } catch (error) {
+        console.error('Auth init failed:', error);
+        if (isMounted) setError(error as Error);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
-    });
+    };
+
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        if (session?.user) {
-          const mappedUser = await fetchProfile(session.user);
-          setUser(mappedUser);
-        } else {
-          setUser(GUEST_USER);
+        if (!isMounted) return;
+        try {
+          if (session?.user) {
+            const mappedUser = await fetchProfile(session.user);
+            if (isMounted) setUser(mappedUser);
+          } else {
+            if (isMounted) setUser(GUEST_USER);
+          }
+        } catch (error) {
+          console.error('Auth state change failed:', error);
+          if (isMounted) setError(error as Error);
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const login = async (credentials: { email: string; password: string }): Promise<boolean> => {
@@ -122,6 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isGuest: user.type === 'guest',
         isProvider: user.type === 'provider',
         loading,
+        error,
       }}
     >
       {children}

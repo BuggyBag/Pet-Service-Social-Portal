@@ -33,7 +33,7 @@ export default function ProviderProfile() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl mb-4">Provider not found</h2>
-          <Button onClick={() => navigate('/browse')}>Back to Browse</Button>
+          <Button onClick={() => navigate('/')}>Back to Browse</Button>
         </div>
       </div>
     );

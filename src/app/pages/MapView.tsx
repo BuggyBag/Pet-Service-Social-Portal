@@ -41,7 +41,8 @@ export default function MapView() {
   const [nearbyAvatars, setNearbyAvatars] = useState<PetAvatarType[]>([]);
 
   useEffect(() => {
-    // Generate random nearby avatars
+    let isActive = true;
+    
     const generateAvatars = () => {
       const types: ('dog' | 'cat' | 'bird' | 'rabbit' | 'hamster')[] = ['dog', 'cat', 'bird', 'rabbit', 'hamster'];
       const names = ['Buddy', 'Luna', 'Max', 'Bella', 'Charlie', 'Lucy', 'Cooper', 'Daisy'];
@@ -68,14 +69,16 @@ export default function MapView() {
         });
       }
       
-      setNearbyAvatars(avatars);
+      if (isActive) setNearbyAvatars(avatars);
     };
 
     generateAvatars();
-    
-    // Refresh avatars periodically
     const interval = setInterval(generateAvatars, 10000);
-    return () => clearInterval(interval);
+    
+    return () => {
+      isActive = false;
+      clearInterval(interval);
+    };
   }, [locationEnabled]);
 
   const handleLocationDecision = (allow: boolean) => {
@@ -138,14 +141,6 @@ export default function MapView() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/search')}
-            >
-              <Search className="w-4 h-4 mr-2" />
-              Quick Search
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
               onClick={() => setShowMessageMenu(true)}
             >
               <MessageCircle className="w-4 h-4 mr-2" />
@@ -154,7 +149,7 @@ export default function MapView() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/browse')}
+              onClick={() => navigate('/')}
             >
               <LayoutGrid className="w-4 h-4 mr-2" />
               Switch to Browse

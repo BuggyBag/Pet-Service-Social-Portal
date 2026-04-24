@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Provider } from '../data/mockData';
+import { handleError } from '../../lib/errorHandler';
 
 interface ProfileEditorProps {
   provider: Provider;
@@ -82,7 +83,8 @@ export default function ProfileEditor({ provider, open, onClose }: ProfileEditor
       });
       onClose();
     } catch (error) {
-      toast.error('Failed to save changes');
+      const message = handleError(error, 'ProfileEditor');
+      toast.error(message);
     } finally {
       setSaving(false);
     }

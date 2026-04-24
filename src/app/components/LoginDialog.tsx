@@ -12,6 +12,8 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
+import { handleError } from '../../lib/errorHandler';
+import { validators } from '../../lib/validation';
 
 interface LoginDialogProps {
   open: boolean;
@@ -40,6 +42,17 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validators.email(loginData.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    if (!validators.required(loginData.password)) {
+      toast.error('Please enter your password');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -52,7 +65,8 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
         toast.error('Invalid email or password');
       }
     } catch (error) {
-      toast.error('Login failed. Please try again.');
+      const message = handleError(error, 'LoginDialog');
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -61,13 +75,29 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (signupData.password !== signupData.confirmPassword) {
-      toast.error('Passwords do not match');
+    if (!validators.email(signupData.email)) {
+      toast.error('Please enter a valid email address');
       return;
     }
 
-    if (signupData.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (!validators.name(signupData.username)) {
+      toast.error('Please enter a valid name (at least 2 characters, letters only)');
+      return;
+    }
+
+    if (!validators.phone(signupData.phone)) {
+      toast.error('Please enter a valid phone number');
+      return;
+    }
+
+    const passwordValidation = validators.password(signupData.password);
+    if (!passwordValidation.valid) {
+      toast.error(passwordValidation.errors[0]);
+      return;
+    }
+
+    if (signupData.password !== signupData.confirmPassword) {
+      toast.error('Passwords do not match');
       return;
     }
 
@@ -90,7 +120,8 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
         toast.error('Failed to create account');
       }
     } catch (error) {
-      toast.error('Signup failed. Please try again.');
+      const message = handleError(error, 'LoginDialog');
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -139,11 +170,13 @@ export default function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 />
               </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                <p className="text-blue-900 mb-2">Demo Credentials:</p>
-                <p className="text-blue-700">User: john@example.com / password123</p>
-                <p className="text-blue-700">Provider: contact@pawsitivegrooming.com / provider123</p>
-              </div>
+              {import.meta.env.DEV && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
+                  <p className="text-yellow-900 font-semibold mb-2">🔨 Development Only:</p>
+                  <p className="text-yellow-800 text-xs">Demo: john@example.com / password123</p>
+                  <p className="text-yellow-800 text-xs">Provider: contact@pawsitivegrooming.com / provider123</p>
+                </div>
+              )}
 
               <Button
                 type="submit"

@@ -11,7 +11,7 @@ export default function PreferenceSelector() {
   const handleContinue = () => {
     if (selectedView) {
       localStorage.setItem('preferredView', selectedView);
-      navigate(selectedView === 'map' ? '/map' : '/browse');
+      navigate(selectedView === 'map' ? '/map' : '/');
     }
   };
 

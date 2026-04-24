@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
 import type { Provider } from '../data/mockData';
+import { handleError } from '../../lib/errorHandler';
 
 interface AddBookingDialogProps {
   open: boolean;
@@ -59,7 +60,8 @@ export default function AddBookingDialog({ open, onOpenChange, provider }: AddBo
         notes: ''
       });
     } catch (error) {
-      toast.error('Failed to add booking. Please try again.');
+      const message = handleError(error, 'AddBookingDialog');
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
