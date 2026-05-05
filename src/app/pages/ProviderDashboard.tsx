@@ -1,29 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { motion } from 'motion/react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
 import {
-  ArrowLeft,
-  Calendar,
-  Edit,
-  Plus,
-  User,
-  Mail,
-  Phone,
-  Clock,
-  MapPin,
-  Users,
-  Settings,
-  Eye
+  Calendar, Edit, Plus, User, Mail, Phone,
+  Clock, MapPin, Users, Settings, Eye, LogOut,
+  TrendingUp, Star,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { mockProviders } from '../data/mockData';
 import ProfileEditor from '../components/ProfileEditor';
 import AddBookingDialog from '../components/AddBookingDialog';
 
-// Mock bookings data
 const mockBookings = [
   {
     id: '1',
@@ -31,12 +22,12 @@ const mockBookings = [
     customerEmail: 'john@example.com',
     customerPhone: '(555) 111-2222',
     service: 'Full Grooming',
-    date: '2026-04-15',
+    date: '2026-06-15',
     time: '10:00',
     petName: 'Max',
     petType: 'dog',
     status: 'confirmed',
-    notes: 'First time customer'
+    notes: 'First time customer',
   },
   {
     id: '2',
@@ -44,12 +35,12 @@ const mockBookings = [
     customerEmail: 'jane@example.com',
     customerPhone: '(555) 333-4444',
     service: 'Bath & Brush',
-    date: '2026-04-15',
+    date: '2026-06-15',
     time: '14:00',
     petName: 'Bella',
     petType: 'cat',
     status: 'pending',
-    notes: ''
+    notes: '',
   },
   {
     id: '3',
@@ -57,32 +48,47 @@ const mockBookings = [
     customerEmail: 'mike@example.com',
     customerPhone: '(555) 555-6666',
     service: 'Nail Trimming',
-    date: '2026-04-16',
+    date: '2026-06-16',
     time: '11:30',
     petName: 'Charlie',
     petType: 'dog',
     status: 'confirmed',
-    notes: 'Nervous around clippers'
-  }
+    notes: 'Nervous around clippers',
+  },
+];
+
+const STAT_COLORS = [
+  { bg: '#ede9fe', icon: '#7c3aed', iconBg: '#ddd6fe' },
+  { bg: '#d1fae5', icon: '#059669', iconBg: '#a7f3d0' },
+  { bg: '#fef3c7', icon: '#d97706', iconBg: '#fde68a' },
+  { bg: '#fce7f3', icon: '#db2777', iconBg: '#fbcfe8' },
 ];
 
 export default function ProviderDashboard() {
   const navigate = useNavigate();
-  const { user, isProvider } = useAuth();
+  const { user, isProvider, logout } = useAuth();
   const [showEditor, setShowEditor] = useState(false);
   const [showAddBooking, setShowAddBooking] = useState(false);
   const [bookings] = useState(mockBookings);
 
-  // Get provider data (mock - in real app, fetch by user.providerId)
   const provider = mockProviders.find(p => p.id === user.providerId) || mockProviders[0];
 
   if (!isProvider) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="p-8 text-center">
-          <h2 className="text-2xl mb-4">Access Denied</h2>
-          <p className="text-gray-600 mb-4">This page is only accessible to service providers.</p>
-          <Button onClick={() => navigate('/')}>Go to Home</Button>
+      <div
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #4f46e5 100%)' }}
+      >
+        <Card className="p-8 text-center max-w-sm w-full">
+          <div className="text-5xl mb-4">🔒</div>
+          <h2 className="text-xl font-black mb-2" style={{ color: '#111827' }}>Acceso denegado</h2>
+          <p className="text-sm mb-5" style={{ color: '#6b7280' }}>Esta página es solo para proveedores de servicios.</p>
+          <Button
+            onClick={() => navigate('/')}
+            style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', color: '#fff', border: 'none', width: '100%' }}
+          >
+            Volver al inicio
+          </Button>
         </Card>
       </div>
     );
@@ -92,320 +98,345 @@ export default function ProviderDashboard() {
   const confirmedCount = bookings.filter(b => b.status === 'confirmed').length;
   const pendingCount = bookings.filter(b => b.status === 'pending').length;
 
+  const stats = [
+    { label: 'Total reservas', value: bookings.length, icon: <Calendar className="w-5 h-5" /> },
+    { label: 'Confirmadas', value: confirmedCount, icon: <Calendar className="w-5 h-5" /> },
+    { label: 'Pendientes', value: pendingCount, icon: <Clock className="w-5 h-5" /> },
+    { label: 'Calificación', value: provider.rating, icon: <Star className="w-5 h-5" /> },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-      {/* Header */}
-      <header className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/')}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Home
-            </Button>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => navigate(`/provider/${provider.id}`)}
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                View Public Profile
-              </Button>
+    <div className="min-h-screen flex flex-col" style={{ background: '#f8f7ff' }}>
+
+      {/* ── Header ── */}
+      <header
+        className="sticky top-0 z-30"
+        style={{
+          background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #db2777 100%)',
+          boxShadow: '0 3px 0 #312e81, 0 4px 16px rgba(79,70,229,0.3)',
+        }}
+      >
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          {/* Logo + name */}
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <div style={{ width: 36, height: 36, background: '#fef9c3', borderRadius: 8, boxShadow: '2px 2px 0 #854d0e', border: '2px solid #78350f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                🐾
+              </div>
+            </button>
+            <div>
+              <p className="text-base font-black" style={{ color: '#fff', lineHeight: 1.2, letterSpacing: '-0.01em' }}>
+                {provider.name}
+              </p>
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>Panel de proveedor</p>
             </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <HdrBtn
+              onClick={() => navigate(`/provider/${provider.id}`)}
+              icon={<Eye className="w-3.5 h-3.5" />}
+              label="Ver perfil"
+            />
+            <HdrBtn
+              onClick={logout}
+              icon={<LogOut className="w-3.5 h-3.5" />}
+              label="Salir"
+              danger
+            />
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl mb-2">Welcome back, {user.username}!</h1>
-          <p className="text-gray-600">Manage your {provider.name} profile and bookings</p>
+      {/* ── Hero banner ── */}
+      <div
+        className="relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4f46e5 100%)', padding: '32px 0 40px' }}
+      >
+        <div className="absolute top-0 left-0 w-64 h-64 rounded-full opacity-20 pointer-events-none"
+          style={{ background: '#818cf8', filter: 'blur(60px)', transform: 'translate(-30%,-30%)' }} />
+        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full opacity-15 pointer-events-none"
+          style={{ background: '#f472b6', filter: 'blur(80px)', transform: 'translate(20%,30%)' }} />
+        <div className="container mx-auto px-4 relative">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <p className="text-sm font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              Bienvenido de nuevo
+            </p>
+            <h1 className="text-3xl font-black mb-1" style={{ color: '#fff', letterSpacing: '-0.03em' }}>
+              {user.username} 👋
+            </h1>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
+              Gestiona tu negocio, reservas y perfil público
+            </p>
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+
+        {/* ── Stat cards ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {stats.map((s, i) => (
+            <motion.div
+              key={s.label}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Card
+                className="p-5"
+                style={{ background: STAT_COLORS[i].bg, border: 'none', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: STAT_COLORS[i].icon, opacity: 0.75 }}>
+                      {s.label}
+                    </p>
+                    <p className="text-3xl font-black" style={{ color: STAT_COLORS[i].icon, letterSpacing: '-0.02em' }}>
+                      {s.value}
+                    </p>
+                  </div>
+                  <div
+                    className="flex items-center justify-center rounded-xl"
+                    style={{ width: 44, height: 44, background: STAT_COLORS[i].iconBg, color: STAT_COLORS[i].icon }}
+                  >
+                    {s.icon}
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Bookings</p>
-                <p className="text-3xl">{bookings.length}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Confirmed</p>
-                <p className="text-3xl">{confirmedCount}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Pending</p>
-                <p className="text-3xl">{pendingCount}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-amber-600" />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Rating</p>
-                <p className="text-3xl">{provider.rating}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <span className="text-2xl">⭐</span>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Main Content Tabs */}
+        {/* ── Tabs ── */}
         <Tabs defaultValue="bookings" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
-            <TabsTrigger value="profile">Profile Settings</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 mb-2">
+            <TabsTrigger value="bookings" className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" /> Reservas
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" /> Perfil
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" /> Analíticas
+            </TabsTrigger>
           </TabsList>
 
-          {/* Bookings Tab */}
+          {/* ── Bookings ── */}
           <TabsContent value="bookings">
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl">Upcoming Appointments</h3>
-                <Button
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            <Card className="overflow-hidden" style={{ border: '1.5px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+              <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <div>
+                  <h3 className="text-lg font-black" style={{ color: '#111827', letterSpacing: '-0.01em' }}>
+                    Próximas citas
+                  </h3>
+                  <p className="text-sm" style={{ color: '#6b7280' }}>{upcomingBookings.length} citas próximas</p>
+                </div>
+                <button
                   onClick={() => setShowAddBooking(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
+                  style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(124,58,237,0.3)' }}
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Manual Booking
-                </Button>
+                  <Plus className="w-4 h-4" /> Nueva reserva
+                </button>
               </div>
 
-              <div className="space-y-4">
+              <div className="p-6 space-y-4">
                 {upcomingBookings.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Calendar className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                    <p className="text-gray-500">No upcoming bookings</p>
+                  <div className="text-center py-16" style={{ color: '#9ca3af' }}>
+                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-semibold">Sin citas próximas</p>
                   </div>
-                ) : (
-                  upcomingBookings.map(booking => (
-                    <Card key={booking.id} className="p-4 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <Badge
-                              variant={booking.status === 'confirmed' ? 'default' : 'secondary'}
-                              className={
-                                booking.status === 'confirmed'
-                                  ? 'bg-green-500'
-                                  : 'bg-amber-500'
-                              }
-                            >
-                              {booking.status}
-                            </Badge>
-                            <span className="text-sm text-gray-500">
-                              {new Date(booking.date).toLocaleDateString('en-US', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}
-                            </span>
-                          </div>
-
-                          <div className="grid md:grid-cols-2 gap-4">
-                            <div>
-                              <h4 className="mb-2">{booking.service}</h4>
-                              <div className="space-y-1 text-sm text-gray-600">
-                                <p className="flex items-center gap-2">
-                                  <Clock className="w-4 h-4" />
-                                  {booking.time}
-                                </p>
-                                <p className="flex items-center gap-2">
-                                  <User className="w-4 h-4" />
-                                  Pet: {booking.petName} ({booking.petType})
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-1 text-sm">
-                              <p>
-                                <strong>Customer:</strong> {booking.customerName}
-                              </p>
-                              <p className="flex items-center gap-2 text-gray-600">
-                                <Mail className="w-4 h-4" />
-                                {booking.customerEmail}
-                              </p>
-                              <p className="flex items-center gap-2 text-gray-600">
-                                <Phone className="w-4 h-4" />
-                                {booking.customerPhone}
-                              </p>
-                              {booking.notes && (
-                                <p className="text-gray-600 mt-2">
-                                  <strong>Notes:</strong> {booking.notes}
-                                </p>
-                              )}
-                            </div>
-                          </div>
+                ) : upcomingBookings.map(b => (
+                  <div
+                    key={b.id}
+                    className="rounded-xl p-4"
+                    style={{ background: '#f9fafb', border: '1.5px solid #f3f4f6' }}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <span
+                            className="px-2 py-0.5 rounded-full text-xs font-bold"
+                            style={{
+                              background: b.status === 'confirmed' ? '#d1fae5' : '#fef3c7',
+                              color: b.status === 'confirmed' ? '#065f46' : '#92400e',
+                              border: `1px solid ${b.status === 'confirmed' ? '#6ee7b7' : '#fcd34d'}`,
+                            }}
+                          >
+                            {b.status === 'confirmed' ? '✓ Confirmada' : '⏳ Pendiente'}
+                          </span>
+                          <span className="text-xs" style={{ color: '#6b7280' }}>
+                            {new Date(b.date).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })} · {b.time}
+                          </span>
                         </div>
 
-                        <div className="flex flex-col gap-2 ml-4">
-                          <Button size="sm" variant="outline">
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="outline">
-                            Cancel
-                          </Button>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <div>
+                            <p className="font-bold text-sm mb-1" style={{ color: '#111827' }}>{b.service}</p>
+                            <p className="text-xs flex items-center gap-1" style={{ color: '#6b7280' }}>
+                              <User className="w-3 h-3" /> {b.petName} ({b.petType})
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold" style={{ color: '#374151' }}>{b.customerName}</p>
+                            <p className="text-xs flex items-center gap-1" style={{ color: '#6b7280' }}>
+                              <Mail className="w-3 h-3" /> {b.customerEmail}
+                            </p>
+                            <p className="text-xs flex items-center gap-1" style={{ color: '#6b7280' }}>
+                              <Phone className="w-3 h-3" /> {b.customerPhone}
+                            </p>
+                          </div>
                         </div>
+                        {b.notes && (
+                          <p className="text-xs mt-2 px-3 py-1.5 rounded-lg" style={{ background: '#ede9fe', color: '#5b21b6' }}>
+                            📝 {b.notes}
+                          </p>
+                        )}
                       </div>
-                    </Card>
-                  ))
-                )}
+                      <div className="flex flex-col gap-2 flex-shrink-0">
+                        <button className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: '#ede9fe', color: '#5b21b6', border: '1px solid #c4b5fd', cursor: 'pointer' }}>
+                          Editar
+                        </button>
+                        <button className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', cursor: 'pointer' }}>
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </Card>
           </TabsContent>
 
-          {/* Profile Settings Tab */}
+          {/* ── Profile Settings ── */}
           <TabsContent value="profile">
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
+            <Card className="overflow-hidden" style={{ border: '1.5px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+              <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <div>
-                  <h3 className="text-xl mb-2">Profile Customization</h3>
-                  <p className="text-gray-600">
-                    Customize your public profile by adding or removing features
-                  </p>
+                  <h3 className="text-lg font-black" style={{ color: '#111827', letterSpacing: '-0.01em' }}>
+                    Personalización del perfil
+                  </h3>
+                  <p className="text-sm" style={{ color: '#6b7280' }}>Controla qué aparece en tu perfil público</p>
                 </div>
-                <Button
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                <button
                   onClick={() => setShowEditor(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold"
+                  style={{ background: 'linear-gradient(135deg,#7c3aed,#db2777)', color: '#fff', border: 'none', cursor: 'pointer', boxShadow: '0 2px 8px rgba(124,58,237,0.3)' }}
                 >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Update My Profile
-                </Button>
+                  <Edit className="w-4 h-4" /> Editar perfil
+                </button>
               </div>
 
-              {/* Current Profile Features */}
-              <div className="space-y-4">
-                <div className="border-t pt-4">
-                  <h4 className="mb-4">Active Features</h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <MapPin className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p>Location & Map</p>
-                        <p className="text-sm text-gray-600">{provider.locations.length} location(s)</p>
-                      </div>
+              <div className="p-6 grid sm:grid-cols-2 gap-4">
+                {[
+                  { icon: <MapPin className="w-5 h-5" />, label: 'Ubicación y mapa', detail: `${provider.locations.length} ubicación(es)`, color: '#7c3aed' },
+                  { icon: <Users className="w-5 h-5" />, label: 'Equipo', detail: `${provider.staff.length} miembros`, color: '#059669' },
+                  { icon: <Clock className="w-5 h-5" />, label: 'Horarios', detail: `${Object.keys(provider.availability).length} días`, color: '#d97706' },
+                  { icon: <Settings className="w-5 h-5" />, label: 'Servicios', detail: `${provider.services.length} servicios`, color: '#db2777' },
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 p-4 rounded-xl"
+                    style={{ background: '#f9fafb', border: '1.5px solid #f3f4f6' }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: `${item.color}18`, color: item.color }}
+                    >
+                      {item.icon}
                     </div>
-
-                    <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <Users className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p>Team Members</p>
-                        <p className="text-sm text-gray-600">{provider.staff.length} staff</p>
-                      </div>
+                    <div>
+                      <p className="font-bold text-sm" style={{ color: '#111827' }}>{item.label}</p>
+                      <p className="text-xs" style={{ color: '#6b7280' }}>{item.detail}</p>
                     </div>
-
-                    <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <Clock className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p>Business Hours</p>
-                        <p className="text-sm text-gray-600">
-                          {Object.keys(provider.availability).length} days
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <Settings className="w-5 h-5 text-green-600" />
-                      <div>
-                        <p>Services</p>
-                        <p className="text-sm text-gray-600">{provider.services.length} services</p>
-                      </div>
-                    </div>
+                    <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#d1fae5', color: '#065f46' }}>
+                      Activo
+                    </span>
                   </div>
-                </div>
+                ))}
               </div>
             </Card>
           </TabsContent>
 
-          {/* Analytics Tab */}
+          {/* ── Analytics ── */}
           <TabsContent value="analytics">
-            <Card className="p-6">
-              <h3 className="text-xl mb-6">Performance Analytics</h3>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="mb-4">This Month</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span>Total Bookings</span>
-                      <span className="text-lg">24</span>
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="p-6" style={{ border: '1.5px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <h3 className="text-base font-black mb-4" style={{ color: '#111827', letterSpacing: '-0.01em' }}>
+                  Este mes
+                </h3>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Reservas totales', value: 24 },
+                    { label: 'Visitas al perfil', value: 156 },
+                    { label: 'Nuevas reseñas', value: 8 },
+                  ].map((r, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 rounded-xl" style={{ background: '#f9fafb' }}>
+                      <span className="text-sm font-semibold" style={{ color: '#374151' }}>{r.label}</span>
+                      <span className="text-lg font-black" style={{ color: '#7c3aed' }}>{r.value}</span>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span>Profile Views</span>
-                      <span className="text-lg">156</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span>New Reviews</span>
-                      <span className="text-lg">8</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
+              </Card>
 
-                <div>
-                  <h4 className="mb-4">Popular Services</h4>
-                  <div className="space-y-3">
-                    {provider.services.slice(0, 3).map((service, idx) => (
-                      <div key={idx} className="p-3 bg-gray-50 rounded-lg">
-                        <div className="flex justify-between items-center mb-2">
-                          <span>{service}</span>
-                          <span className="text-sm text-gray-600">{12 - idx * 3} bookings</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div
-                            className="bg-gradient-to-r from-purple-600 to-pink-600 h-2 rounded-full"
-                            style={{ width: `${100 - idx * 25}%` }}
-                          />
-                        </div>
+              <Card className="p-6" style={{ border: '1.5px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <h3 className="text-base font-black mb-4" style={{ color: '#111827', letterSpacing: '-0.01em' }}>
+                  Servicios populares
+                </h3>
+                <div className="space-y-4">
+                  {provider.services.slice(0, 3).map((service, i) => (
+                    <div key={i}>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-sm font-semibold" style={{ color: '#374151' }}>{service}</span>
+                        <span className="text-xs font-bold" style={{ color: '#7c3aed' }}>{12 - i * 3} reservas</span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="w-full rounded-full h-2" style={{ background: '#e5e7eb' }}>
+                        <div
+                          className="h-2 rounded-full"
+                          style={{
+                            width: `${100 - i * 25}%`,
+                            background: 'linear-gradient(135deg,#7c3aed,#db2777)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
 
       {showEditor && (
-        <ProfileEditor
-          provider={provider}
-          open={showEditor}
-          onClose={() => setShowEditor(false)}
-        />
+        <ProfileEditor provider={provider} open={showEditor} onClose={() => setShowEditor(false)} />
       )}
-      
-      <AddBookingDialog
-        open={showAddBooking}
-        onOpenChange={setShowAddBooking}
-        provider={provider}
-      />
+      <AddBookingDialog open={showAddBooking} onOpenChange={setShowAddBooking} provider={provider} />
     </div>
+  );
+}
+
+function HdrBtn({ onClick, icon, label, danger }: { onClick: () => void; icon: React.ReactNode; label: string; danger?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold"
+      style={{
+        background: danger ? 'rgba(254,226,226,0.9)' : 'rgba(255,255,255,0.18)',
+        color: danger ? '#991b1b' : '#fff',
+        border: danger ? '2px solid #fca5a5' : '2px solid rgba(255,255,255,0.3)',
+        boxShadow: danger ? '2px 2px 0 #f87171' : 'none',
+        cursor: 'pointer',
+      }}
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+    </button>
   );
 }
