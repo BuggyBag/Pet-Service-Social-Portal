@@ -46,25 +46,25 @@ This project was developed as a UX Design final project, aligned with UN Sustain
 
 | Landing / Browse View | Search Filters |
 |---|---|
-| ![Browse](docs/screenshots/browse.png) | ![Search](docs/screenshots/search.png) |
+| ![Browse](screenshots/browse.png) | ![Search](screenshots/search.png) |
 
 ### Provider Experience
 
 | Provider Profile | Booking Dialog |
 |---|---|
-| ![Provider Profile](docs/screenshots/providerProfile.png) | ![Booking](docs/screenshots/booking.png) |
+| ![Provider Profile](screenshots/providerProfile.png) | ![Booking](screenshots/booking.png) |
 
 ### Interactive Map
 
 | Map View |
 |---|
-| ![Map](docs/screenshots/map.png) |
+| ![Map](screenshots/map.png) |
 
 ### Provider Dashboard
 
 | Dashboard | Profile Editor |
 |---|---|
-| ![Dashboard](docs/screenshots/provider.png) | ![Editor](docs/screenshots/editor.png) |
+| ![Dashboard](screenshots/provider.png) | ![Editor](screenshots/editor.png) |
 
 ---
 
